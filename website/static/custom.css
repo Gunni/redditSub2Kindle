@@ -1,0 +1,19 @@
+html {
+	font-size: 2rem;
+}
+
+input.vote {
+	height: 1em;
+}
+
+.position-relative:hover {
+	-webkit-backdrop-filter: brightness(110%);
+	backdrop-filter: brightness(110%);
+	filter: brightness(110%);
+}
+
+ul {
+	list-style-type: none;
+	padding: 0px;
+	margin: 0px;
+}

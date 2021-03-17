@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% load bootstrap4 %}
+{% block title %}{% if story %}"{{ story.title_fragment }}" by {{ story.author.username }}{% else %}All subscriptions{% endif %}{% endblock %}
+
+{% load static %}
+{% load date_formatters %}
+{% load fuck_numberwords %}
+
+{% block content %}
+<table class="table table-striped">
+	<thead>
+		<tr>
+			<th scope="col">Created</th>
+			<th scope="col">Title</th>
+			<th scope="col">Vote</th>
+			<th scope="col">HTML</th>
+		</tr>
+	</thead>
+	<tbody>
+		{% for post in posts %}
+		<tr>
+			<td class="datetime">{{ post.created_utc | unix_to_datetime | date:"Y-m-d H:i:s" }}</td>
+			<td class="position-relative">
+				<a target="_blank" href="{{ post.url }}" class="font-weight-bold stretched-link">{{ post.title | fuck_numberwords }}</a>
+			</td>
+			<td class="position-relative">
+				{% if sub %}
+				<form action="{% url 'vote' vote_id=post.id %}" method="post">
+				{% else %}
+				<form action="{% url 'vote' vote_id=post.id %}" method="post">
+				{% endif %}
+					{% if post.upvotable and not post.likes %}
+					<!-- <button name="upvote" type="submit" class="btn btn-light btn-lg">Upvote</button> -->
+					<a href="{% url 'vote' vote_id=post.id %}" class="btn btn-light btn-lg" download>Upvote</a>
+					{% elif post.upvotable and post.likes %}
+					<!-- <button name="downvote" type="submit" class="btn btn-dark btn-lg">Downvote</button> -->
+					<a href="{% url 'vote' vote_id=post.id %}" class="btn btn-dark btn-lg" download>Downvote</a>
+					{% elif not post.upvotable and not post.hidden %}
+					<!-- <button name="hide" type="submit" class="btn btn-dark btn-lg">Hide</button> -->
+					<a href="{% url 'vote' vote_id=post.id %}" class="btn btn-dark btn-lg" download>Hide</a>
+					{% elif not post.upvotable and post.hidden %}
+					<!-- <button name="unhide" type="submit" class="btn btn-dark btn-lg">Unhide</button> -->
+					<a href="{% url 'vote' vote_id=post.id %}" class="btn btn-dark btn-lg" download>Unhide</a>
+					{% endif %}
+				</form>
+			</td>
+			<td class="position-relative">
+				<a href="{% url 'download' post_id=post.id %}" class="btn btn-dark btn-lg" download>Download</a>
+			</td>
+		</tr>
+		{% endfor %}
+	</tbody>
+</table>
+{% endblock %}

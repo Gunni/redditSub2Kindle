@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% load bootstrap4 %}
+{% block title %}redditSub2Kindle{% endblock %}
+
+{% load static %}
+
+{% block content %}
+<table class="table table-striped">
+	<thead>
+		<tr>
+			<th scope="col">Username</th>
+			<th scope="col">Title (view posts)</th>
+		</tr>
+	</thead>
+	<tbody>
+		{% if payload %}
+		{% for authorStory in payload %}
+		<tr>
+			<td><a target="_blank" href="https://www.reddit.com/u/{{ authorStory.author.username }}/posts" class="btn btn-dark btn-lg">/u/{{ authorStory.author.username }}</a></td>
+			<th scope="row">
+				<ul>
+				{% for story in authorStory.stories %}
+				<li><a href="{% url 'detail' story_id=story.id %}" class="btn btn-dark btn-lg">{{ story.title_fragment }}</a></li>
+				{% endfor %}
+				</ul>
+			</th>
+		</tr>
+		{% endfor %}
+		{% else %}
+		<tr>
+			<td colspan="2">No subscriptions in database, add in Admin panel</td>
+		</tr>
+		{% endif %}
+	</tbody>
+</table>
+
+<hr />
+
+<div>
+	<h2>Link 2 download or send</h2>
+
+	<form method="post" action="{% url 'direct' %}">
+		<div class="input-group mb-3">
+			<input name="url" type="url" class="form-control" placeholder="URL">
+
+			<div class="input-group-append">
+				<button name="download" class="btn btn-outline-secondary" type="submit">Download</button>
+			</div>
+		</div>
+	</form>
+</div>
+
+{% endblock %}

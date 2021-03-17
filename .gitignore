@@ -1,0 +1,7 @@
+**/__pycache__
+**/*.pyc
+
+django_cache/*
+db.sqlite3
+dkim_rsa.key
+praw.ini

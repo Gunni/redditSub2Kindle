@@ -1,0 +1,25 @@
+{% extends 'bootstrap.html' %}
+
+{% load bootstrap4 %}
+{% load static %}
+
+{% block bootstrap4_content %}
+	<div class="container">
+		<h2>{% block title %}(no title){% endblock %}</h2>
+
+		<p>
+			<a class="btn btn-success btn-lg" href="{% url 'index' %}" role="button">Index</a>
+
+			<a class="btn btn-danger btn-lg" href="{% url 'all' %}" role="button">All</a>
+
+			<a class="btn btn-primary btn-lg" href="/admin" role="button">Admin</a>
+		</p>
+
+		{% autoescape off %}{% bootstrap_messages %}{% endautoescape %}
+
+		{% block content %}(no content){% endblock %}
+	</div>
+
+<script src="{% static 'moment.js' %}"></script>
+<script src="{% static 'custom.js' %}" defer></script>
+{% endblock %}
