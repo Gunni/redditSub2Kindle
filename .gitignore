@@ -2,6 +2,7 @@
 **/*.pyc
 
 django_cache/*
+redditSub2Kindle/secret.txt
 db.sqlite3
 dkim_rsa.key
 praw.ini

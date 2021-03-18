@@ -3,8 +3,12 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'i-6@k((l9a$s94jg4iye9icrni89p2olp&f$t1*0b7^79l&j!s'
+try:
+	with open(Path(__file__).parent / Path('secret.txt'), 'r') as f:
+		# SECURITY WARNING: keep the secret key used in production secret!
+		SECRET_KEY = f.read()
+except FileNotFoundError as e:
+	raise Exception(f'Create secret.txt in {Path(__file__).parent} containing some arbritary string')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -120,8 +124,11 @@ TIME_FORMAT = 'H:M:S'
 
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+
+# You suck if you domain can't do this, git gud, https for lyf
 SECURE_HSTS_PRELOAD = True
 SECURE_HSTS_SECONDS = 60 * 60 * 24 * 365 * 3
+
 SECURE_REFERRER_POLICY = 'no-referrer'
 
 CSP_DEFAULT_SRC = [ "'none'" ]

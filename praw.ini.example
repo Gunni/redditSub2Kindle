@@ -1,0 +1,16 @@
+[DEFAULT]
+check_for_updates=False
+ratelimit_seconds=60
+timeout=120
+user_agent=windows:myRedditToKindle:v0.2 (by /u/gunni)
+redirect_uri=http://localhost:8080
+
+# Use praw_auth.py to authenticate and get these
+
+username=TODO
+
+client_id=TODO
+client_secret=TODO
+
+# You will need these scopes: vote,read,identity,history,report
+refresh_token=TODO
