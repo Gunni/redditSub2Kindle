@@ -19,9 +19,9 @@
 			<td><a target="_blank" href="https://www.reddit.com/u/{{ authorStory.author.username }}/posts" class="btn btn-dark btn-lg">/u/{{ authorStory.author.username }}</a></td>
 			<th scope="row">
 				<ul>
-				{% for story in authorStory.stories %}
-				<li><a href="{% url 'detail' story_id=story.id %}" class="btn btn-dark btn-lg">{{ story.title_fragment }}</a></li>
-				{% endfor %}
+					{% for story in authorStory.stories %}
+					<li><a href="{% url 'detail' story_id=story.id %}" class="btn btn-dark btn-lg">{{ story.title_fragment }}</a></li>
+					{% endfor %}
 				</ul>
 			</th>
 		</tr>
@@ -37,7 +37,7 @@
 <hr />
 
 <div>
-	<h2>Link 2 download or send</h2>
+	<h2>Download post directly</h2>
 
 	<form method="post" action="{% url 'direct' %}">
 		<div class="input-group mb-3">

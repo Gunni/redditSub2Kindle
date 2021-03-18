@@ -24,11 +24,7 @@
 				<a target="_blank" href="{{ post.url }}" class="font-weight-bold stretched-link">{{ post.title | fuck_numberwords }}</a>
 			</td>
 			<td class="position-relative">
-				{% if sub %}
 				<form action="{% url 'vote' vote_id=post.id %}" method="post">
-				{% else %}
-				<form action="{% url 'vote' vote_id=post.id %}" method="post">
-				{% endif %}
 					{% if post.upvotable and not post.likes %}
 					<!-- <button name="upvote" type="submit" class="btn btn-light btn-lg">Upvote</button> -->
 					<a href="{% url 'vote' vote_id=post.id %}" class="btn btn-light btn-lg" download>Upvote</a>

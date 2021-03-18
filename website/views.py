@@ -5,7 +5,7 @@ from django.views.decorators.http import require_http_methods
 from prawcore import BadJSON
 
 from .models import Author, Story
-from .utils import get_posts_by_sub, can_upvote, wipe_cache, downloadPostWithComments
+from .utils import get_posts_by_sub, can_upvote, wipe_cache, downloadPostWithComments, sort_posts
 
 
 @require_http_methods(["GET"])
@@ -83,9 +83,9 @@ def vote(request, vote_id):
 
 	# Return fake file download with bullshit content type so that we don't redirect the user
 	# Very helpful for kindle users to be able to download many posts and upvote them too
-	response = HttpResponse('', content_type='application/vnd+gunni.fikt')
+	response = HttpResponse('', content_type='application/vnd+reddit.sub')
 	response['Content-Description'] = 'File Transfer'
-	response['Content-Disposition'] = f'attachment; filename="success.txt"'
+	response['Content-Disposition'] = f'attachment; filename="success"'
 
 	return response
 
