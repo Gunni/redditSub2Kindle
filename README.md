@@ -12,3 +12,17 @@ Good example subscription:
 
 # Setup
 Configure praw, I left an example config and praw_auth.py
+
+# Screenshots
+
+This is what the index page looks like
+
+![the application index page](screenshot-1.png "the application index page")
+
+And here is a single subscription page
+
+![a single subscription page](screenshot-2.png "a single subscription page")
+
+And this is the all subscriptions page
+
+![Image showing the application index page](screenshot-3.png "Image showing the application index page")
