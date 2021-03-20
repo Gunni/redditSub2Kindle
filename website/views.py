@@ -63,28 +63,35 @@ def vote(request, vote_id):
 	reddit = praw.Reddit()
 	post = reddit.submission(vote_id)
 
+	action = ''
+
 	if can_upvote(post):
 		upvote_state = post.likes
 
 		if upvote_state is None:
 			post.upvote()
+			action = 'upvoted'
 		elif upvote_state: # is True
 			post.clear_vote()
+			action = 'downvoted'
 		else:
 			raise NotImplemented()
 	else:
 		if post.hidden:
 			post.unhide()
+			action = 'unhidden'
 		else:
 			post.hide()
+			action = 'hidden'
 
 	wipe_cache(post.id)
 
-	# Return fake file download with bullshit content type so that we don't redirect the user
-	# Very helpful for kindle users to be able to download many posts and upvote them too
-	response = HttpResponse('', content_type='application/vnd+reddit.sub')
+	# Return fake file download with so that we don't redirect the user
+	# Slightly annoying for desktop users, but suuuper handy for Kindle users
+	# Consider only doing this for kindle User Agents?
+	response = HttpResponse('', content_type='application/octet-stream')
 	response['Content-Description'] = 'File Transfer'
-	response['Content-Disposition'] = f'attachment; filename="success"'
+	response['Content-Disposition'] = f'attachment; filename="Post {action}.txt"'
 
 	return response
 
