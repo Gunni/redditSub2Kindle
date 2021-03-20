@@ -28,6 +28,7 @@ class Story(models.Model):
 	author = models.ForeignKey(Author, on_delete=models.CASCADE)
 	subreddit = models.CharField(max_length=200)
 	title_fragment = models.CharField(max_length=200)
+	is_regex = models.BooleanField(default=False)
 
 	enabled = models.BooleanField(default=True)
 

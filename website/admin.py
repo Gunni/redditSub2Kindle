@@ -11,6 +11,6 @@ class AuthorAdmin(admin.ModelAdmin):
 admin.site.register(Author, AuthorAdmin)
 
 class StoryAdmin(admin.ModelAdmin):
-	list_display = ('author', 'subreddit', 'title_fragment', 'enabled')
+	list_display = ('author', 'subreddit', 'title_fragment', 'is_regex', 'enabled')
 
 admin.site.register(Story, StoryAdmin)

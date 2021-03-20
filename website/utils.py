@@ -76,8 +76,12 @@ def get_reddit_posts(author, story, how_many_likes_i_want=10):
 			acceptedPost = False
 
 			for subscription in subscriptions:
-				# Ensure we skip posts not matching regex
-				r = re.match(rf'.*{re.escape(subscription.title_fragment)}.*', post.title, re.IGNORECASE)
+				title = subscription.title_fragment
+
+				if not subscription.is_regex:
+					title = re.escape(title)
+
+				r = re.match(title, post.title, re.IGNORECASE)
 				acceptedPost |= True if r is not None else False
 
 			if not acceptedPost:
