@@ -2,7 +2,7 @@
 check_for_updates=False
 ratelimit_seconds=60
 timeout=120
-user_agent=windows:myRedditToKindle:v0.2 (by /u/gunni)
+user_agent=myRedditToKindle:v1.0 (by /u/gunni)
 redirect_uri=http://localhost:8080
 
 # Use praw_auth.py to authenticate and get these
