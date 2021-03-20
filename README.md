@@ -27,6 +27,7 @@ Configure praw, I left an example config and praw_auth.py
 - Function with a registered but unlinked user (no upvoting/hiding/seeing state) (no oauth?)
 - Make a background process fetch author posts and store them locally for users
 - Notification support? Email support? or reddit message maybe?
+- Enqueue a direct url to later download/upvote/remove on Kindle
 
 # Screenshots
 

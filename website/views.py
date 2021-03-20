@@ -10,7 +10,6 @@ from .utils import get_reddit_posts, can_upvote, wipe_cache, downloadPostWithCom
 
 @require_http_methods(["GET"])
 def index(request):
-	#subs = Author.objects.all().order_by('title_fragment')
 	authors = Author.objects.filter(enabled=True)
 	stories = Story.objects.filter(enabled=True)
 
@@ -105,7 +104,7 @@ def direct(request):
 
 	reddit = praw.Reddit()
 
-	# https://www.reddit.com/r/WritingPrompts/comments/l6r4c7/wp_war_is_no_longer_initiated_by_your_countrys/
+	# If url is not a reddit host, this will return a InvalidURL exception
 	post = reddit.submission(url=p['url'])
 
 	if 'download' in p:

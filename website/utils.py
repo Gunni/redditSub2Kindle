@@ -2,7 +2,6 @@ import datetime
 import logging
 import operator
 import pickle
-import pprint
 import re
 import praw
 
