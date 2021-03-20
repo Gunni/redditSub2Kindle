@@ -5,7 +5,7 @@ from django.views.decorators.http import require_http_methods
 from prawcore import BadJSON
 
 from .models import Author, Story
-from .utils import get_posts_by_sub, can_upvote, wipe_cache, downloadPostWithComments, sort_posts
+from .utils import get_reddit_posts, can_upvote, wipe_cache, downloadPostWithComments, sort_posts
 
 
 @require_http_methods(["GET"])
@@ -39,7 +39,7 @@ def all(request):
 		sub_posts = []
 
 		try:
-			sub_posts = get_posts_by_sub(author, None, 0)
+			sub_posts = get_reddit_posts(author, None, 0)
 		except BadJSON as e:
 			print(f'{author} returned {e}')
 			continue
@@ -56,7 +56,7 @@ def detail(request, story_id):
 	return render(request, 'detail.html', {
 		'story': story,
 		'author': author,
-		'posts': get_posts_by_sub(author, story, 10)
+		'posts': get_reddit_posts(author, story)
 	})
 
 @require_http_methods(["GET", "POST"])
