@@ -81,7 +81,7 @@ def get_reddit_posts(author, story, how_many_likes_i_want=10):
 					title = re.escape(title)
 
 				r = re.match(title, post.title, re.IGNORECASE)
-				acceptedPost |= True if r is not None else False
+				acceptedPost |= r is not None
 
 			if not acceptedPost:
 				continue
