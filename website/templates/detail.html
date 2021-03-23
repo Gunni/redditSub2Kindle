@@ -26,17 +26,27 @@
 			<td class="position-relative">
 				<form action="{% url 'vote' vote_id=post.id %}" method="post">
 					{% if post.upvotable and not post.likes %}
-					<!-- <button name="upvote" type="submit" class="btn btn-light btn-lg">Upvote</button> -->
 					<a href="{% url 'vote' vote_id=post.id %}" class="btn btn-light btn-lg" download>Upvote</a>
+
 					{% elif post.upvotable and post.likes %}
-					<!-- <button name="downvote" type="submit" class="btn btn-dark btn-lg">Downvote</button> -->
 					<a href="{% url 'vote' vote_id=post.id %}" class="btn btn-dark btn-lg" download>Downvote</a>
+
+					{% elif not post.upvotable and post.likes and not post.hidden %}
+					<a href="{% url 'vote' vote_id=post.id %}" class="btn btn-dark btn-lg" download
+					   title="this means post is upvoted > 6 months ago, meaning upvote cannot be cleared anymore">OldUpvoteHide</a>
+
 					{% elif not post.upvotable and not post.hidden %}
 					<!-- <button name="hide" type="submit" class="btn btn-dark btn-lg">Hide</button> -->
 					<a href="{% url 'vote' vote_id=post.id %}" class="btn btn-dark btn-lg" download>Hide</a>
+
+					{% elif not post.upvotable and post.likes and post.hidden %}
+					<a href="{% url 'vote' vote_id=post.id %}" class="btn btn-dark btn-lg" download
+					   title="this means post is upvoted > 6 months ago, meaning upvote cannot be cleared anymore">OldUpvoteUnhide</a>
+
 					{% elif not post.upvotable and post.hidden %}
 					<!-- <button name="unhide" type="submit" class="btn btn-dark btn-lg">Unhide</button> -->
 					<a href="{% url 'vote' vote_id=post.id %}" class="btn btn-dark btn-lg" download>Unhide</a>
+
 					{% endif %}
 				</form>
 			</td>

@@ -16,7 +16,7 @@
 		{% if payload %}
 		{% for authorStory in payload %}
 		<tr>
-			<td><a target="_blank" href="https://www.reddit.com/u/{{ authorStory.author.username }}/posts" class="btn btn-dark btn-lg">/u/{{ authorStory.author.username }}</a></td>
+			<td><a target="_blank" href="https://www.reddit.com/u/{{ authorStory.author.username }}/posts" class="btn btn-dark btn-lg">{{ authorStory.author.username }}</a></td>
 			<th scope="row">
 				<ul>
 					{% for story in authorStory.stories %}
