@@ -67,9 +67,9 @@ def get_reddit_posts(author, story, how_many_likes_i_want=10):
 			if post.pinned:
 				continue
 
-			# deleted posts are ignored like this, no deleted bool that I found
+			# deleted posts are ignored like this, there is no deleted bool that I found
 			if post.removed_by_category is not None:
-				print(f'"{post.title}" is deleted?')
+				continue
 
 			# Skip posts not matching the title_fragment
 			acceptedPost = False
