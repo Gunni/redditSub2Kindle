@@ -80,7 +80,7 @@ def get_reddit_posts(author, story, how_many_likes_i_want=10):
 				if not subscription.is_regex:
 					title = re.escape(title)
 
-				r = re.match(title, post.title, re.IGNORECASE)
+				r = re.search(title, post.title, re.IGNORECASE)
 				acceptedPost |= r is not None
 
 			if not acceptedPost:
