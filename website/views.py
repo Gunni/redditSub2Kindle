@@ -1,16 +1,17 @@
 import praw
 from django.http import HttpResponse
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.views.decorators.http import require_http_methods
 from prawcore import BadJSON
 
-from .models import Author, Story
+from .model_author import Author, AuthorForm
+from .model_story import Story
 from .utils import get_reddit_posts, can_upvote, wipe_cache, downloadPostWithComments, sort_posts
 
 
 @require_http_methods(["GET"])
 def index(request):
-	authors = Author.objects.filter(enabled=True)
+	authors = Author.ordered_objects.filter(enabled=True)
 	stories = Story.objects.filter(enabled=True)
 
 	author_stories = []
@@ -30,7 +31,7 @@ def index(request):
 
 @require_http_methods(["GET"])
 def all(request):
-	authors = Author.objects.filter(enabled=True)
+	authors = Author.ordered_objects.filter(enabled=True)
 
 	posts = []
 
