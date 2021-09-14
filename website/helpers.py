@@ -7,6 +7,10 @@ from word2number import w2n
 # Examples:
 # 'Hello one two three' becomes 'Hello 123'
 def replaceTextnumberWithNumber(text):
+	# Exceptions:
+	if len(text) > 10 and 'Seven Days of Fire' in text:
+		return text
+
 	tagged_number_words = 'ten/CD thousand/CD nine/CD hundred/CD ninety/CD eight/CD seven/CD six/CD five/CD four/CD three/CD two/CD one/CD eighty/CD seventy/CD sixty/CD fifty/CD forty/CD thirty/CD twenty/CD nineteen/CD eighteen/CD seventeen/CD sixteen/CD fifteen/CD fourteen/CD thirteen/CD twelve/CD eleven/CD zero/CD'
 	tagged_number_words_tuples = [nltk.tag.str2tuple(t) for t in tagged_number_words.split()]
 	my_tagger = nltk.UnigramTagger([ tagged_number_words_tuples ], backoff=nltk.DefaultTagger('IGNORE'))

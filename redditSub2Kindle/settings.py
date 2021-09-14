@@ -1,4 +1,11 @@
+import json
 from pathlib import Path
+
+import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration
+import tqdm.utils
+
+DJANGO_COLORS = True
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -116,7 +123,7 @@ USE_TZ = False
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
-STATIC_URL = '/static/'
+STATIC_URL = 'static/'
 
 SHORT_DATE_FORMAT = 'Y-m-d'
 SHORT_DATETIME_FORMAT = 'Y-m-d H:M:S'
@@ -135,12 +142,13 @@ CSP_DEFAULT_SRC = [ "'none'" ]
 CSP_IMG_SRC = [ "'self'" ]
 CSP_STYLE_SRC = [ "'self'" ]
 CSP_SCRIPT_SRC = [ "'self'" ]
+CSP_CONNECT_SRC = [ "'self'" ]
 CSP_FONT_SRC = [ "'self'" ]
 
 CSP_BASE_URI = [ "'none'" ]
 CSP_FORM_ACTION = [ "'self'" ]
 CSP_FRAME_ANCESTORS = [ "'none'" ]
-CSP_NAVIGATE_TO = [ "'self'", 'https://www.reddit.com/' ]
+CSP_NAVIGATE_TO = [ "'self'", 'https://www.reddit.com', 'https://i.reddit.com' ]
 
 CSP_SANDBOX = [
 	'allow-downloads',
@@ -160,3 +168,24 @@ BOOTSTRAP4 = {
 	'jquery_url': '/static/jquery-3.5.1.js',
 	'include_jquery': True,
 }
+
+try:
+	with open(Path(__file__).parent / Path('sentry.json'), 'r') as f:
+		# SECURITY WARNING: keep the secret key used in production secret!
+		SENTRY_CONFIG = json.load(f)
+except FileNotFoundError as e:
+	raise Exception(f'Create sentry.json in {Path(__file__).parent} containing a dsn')
+
+sentry_sdk.init(
+	dsn=SENTRY_CONFIG['dsn'],
+	integrations=[DjangoIntegration()],
+
+	# Set traces_sample_rate to 1.0 to capture 100%
+	# of transactions for performance monitoring.
+	# We recommend adjusting this value in production.
+	traces_sample_rate=1.0,
+
+	# If you wish to associate users to errors (assuming you are using
+	# django.contrib.auth) you may enable sending PII data.
+	send_default_pii=True
+)

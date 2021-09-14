@@ -1,6 +1,11 @@
 {% extends 'base.html' %}
 {% load bootstrap4 %}
-{% block title %}{% if story %}"{{ story.title_fragment }}" by {{ story.author.username }}{% else %}All subscriptions{% endif %}{% endblock %}
+{% block title %}
+{% if story %}"{{ story.title_fragment }}" by <a target="_blank" href="https://www.reddit.com/u/{{ story.author.username }}/posts">{{ story.author.username }}</a>
+{% else %}
+All subscriptions
+{% endif %}
+{% endblock %}
 
 {% load static %}
 {% load date_formatters %}
@@ -13,7 +18,7 @@
 			<th scope="col">Created</th>
 			<th scope="col">Title</th>
 			<th scope="col">Vote</th>
-			<th scope="col">HTML</th>
+			<th scope="col">eBook</th>
 		</tr>
 	</thead>
 	<tbody>
@@ -21,7 +26,7 @@
 		<tr>
 			<td class="datetime">{{ post.created_utc | unix_to_datetime | date:"Y-m-d H:i:s" }}</td>
 			<td class="position-relative">
-				<a target="_blank" href="{{ post.url }}" class="font-weight-bold stretched-link">{{ post.title | fuck_numberwords }}</a>
+				<a target="_blank" href="{{ post.url }}" class="font-weight-bold stretched-link">{{ post.fixed_title }}</a>
 			</td>
 			<td class="position-relative">
 				<form action="{% url 'vote' vote_id=post.id %}" method="post">
@@ -51,10 +56,22 @@
 				</form>
 			</td>
 			<td class="position-relative">
-				<a href="{% url 'download' post_id=post.id %}" class="btn btn-dark btn-lg" download>Download</a>
+				<a href="{% url 'download_ebook' post_id=post.id %}" class="btn btn-dark btn-lg" download>azw3</a>
 			</td>
 		</tr>
 		{% endfor %}
 	</tbody>
 </table>
+
+
+<form id="get_more_posts" method="get">
+	<input type="hidden" name="n" value="1000">
+	<button name="submit" type="submit">Show all posts</button>
+</form>
+
+<form id="get_all" action="/get_all/{{ story.id }}/" method="post">
+	<input type="hidden" name="story_id" value="{{ story.id }}">
+	<button name="submit" type="submit">Get ALL (allow multiple downloads)</button>
+</form>
+
 {% endblock %}

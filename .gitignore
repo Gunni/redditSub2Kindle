@@ -3,6 +3,7 @@
 
 django_cache/*
 redditSub2Kindle/secret.txt
+redditSub2Kindle/sentry.json
 db.sqlite3
 dkim_rsa.key
 praw.ini

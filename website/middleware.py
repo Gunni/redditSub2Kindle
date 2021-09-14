@@ -1,10 +1,27 @@
+import json
+from django.conf import settings
+
 class Headers:
 	def __init__(self, get_response):
 		self.get_response = get_response
 
 	def __call__(self, request):
 		response = self.get_response(request)
-		response['report-to'] = '{ "group": "csp", "includeSubdomains": true, "max_age": 604800, "endpoints": [ { "url": "https://meta.meh.is/reporting/csp", "priority": 100, "weight": 100 } ] }'
+
+		report_to = {
+			'group': 'csp',
+			'includeSubdomains': True,
+			'max_age': 604800,
+			'endpoints': [
+				{
+					'url': settings.SENTRY_CONFIG['report'],
+					'priority': 100,
+					'weight': 100,
+				}
+			]
+		}
+
+		response['report-to'] = json.dumps(report_to)
 		return response
 
 class CSRFG:

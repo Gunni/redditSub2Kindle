@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% load bootstrap4 %}
+{% block title %}redditSub2Kindle{% endblock %}
+
+{% load static %}
+
+{% block content %}
+<table class="table table-striped">
+	<thead>
+		<tr>
+			<th scope="col">Username</th>
+			<th scope="col">Enabled</th>
+			<th scope="col">Edit</th>
+		</tr>
+	</thead>
+	<tbody>
+		{% if authors %}
+		{% for author in authors %}
+		<tr>
+			<td><a target="_blank" href="https://www.reddit.com/u/{{ author.username }}/posts" class="btn btn-dark btn-lg">/u/{{ author.username }}</a></td>
+			<td>{{ author.enabled }}</td>
+			<th scope="row">
+				<a href="{% url 'author' author_id=author.id %}" class="btn btn-dark btn-lg">🖉️</a>
+			</th>
+		</tr>
+		{% endfor %}
+		{% else %}
+		<tr>
+			<td colspan="2">No authors in database, add one!</td>
+		</tr>
+		{% endif %}
+	</tbody>
+</table>
+{% endblock %}
