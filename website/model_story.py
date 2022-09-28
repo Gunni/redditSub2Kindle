@@ -3,10 +3,13 @@ from .model_author import Author
 
 
 class Story(models.Model):
+	objects = None
 	author = models.ForeignKey(Author, on_delete=models.CASCADE)
 	subreddit = models.CharField(max_length=200)
 	title_fragment = models.CharField(max_length=200)
 	is_regex = models.BooleanField(default=False)
+	is_fuzzy = models.BooleanField(default=True)
+	fuzzy_ratio = models.IntegerField(default=80)
 
 	enabled = models.BooleanField(default=True)
 

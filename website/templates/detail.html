@@ -65,13 +65,20 @@ All subscriptions
 
 
 <form id="get_more_posts" method="get">
-	<input type="hidden" name="n" value="1000">
-	<button name="submit" type="submit">Show all posts</button>
+	<input type="hidden" name="n" value="10000">
+	<button name="submit" type="submit">Show up to 10.000 posts</button>
 </form>
 
-<form id="get_all" action="/get_all/{{ story.id }}/" method="post">
+<form id="get_n_chapter_as_ebook" action="/get_n_chapter_as_ebook/{{ story.id }}/" method="post">
 	<input type="hidden" name="story_id" value="{{ story.id }}">
-	<button name="submit" type="submit">Get ALL (allow multiple downloads)</button>
+	<button name="submit" type="submit">Get next 10 unread as one azw3</button>
+</form>
+
+<hr />
+
+<form id="nuke_cache" action="/nuke_cache/{{ story.id }}/" method="post">
+	<input type="hidden" name="story_id" value="{{ story.id }}">
+	<button name="submit" type="submit">Nuke cache for this story</button>
 </form>
 
 {% endblock %}

@@ -4,7 +4,7 @@ cd %~dp0
 
 set ANSICON=on
 
-call ..\venv\Scripts\activate
+rem call ..\venv\Scripts\activate
 
 python .\manage.py runserver 0.0.0.0:8000
 

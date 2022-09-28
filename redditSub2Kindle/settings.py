@@ -3,7 +3,6 @@ from pathlib import Path
 
 import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
-import tqdm.utils
 
 DJANGO_COLORS = True
 
@@ -15,15 +14,18 @@ try:
 		# SECURITY WARNING: keep the secret key used in production secret!
 		SECRET_KEY = f.read()
 except FileNotFoundError as e:
-	raise Exception(f'Create secret.txt in {Path(__file__).parent} containing some arbritary string')
+	raise Exception(f'Create secret.txt in {Path(__file__).parent} containing some arbitrary string')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-
+#
 ALLOWED_HOSTS = [
 	'127.0.0.1',
 	'10.0.10.10',
+	'10.10.10.10',
 ]
+
+INTERNAL_IPS = ALLOWED_HOSTS
 
 # Application definition
 INSTALLED_APPS = [
@@ -119,6 +121,7 @@ USE_L10N = False
 
 USE_TZ = False
 
+SESSION_COOKIE_SAMESITE = 'Strict'
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
@@ -132,11 +135,11 @@ TIME_FORMAT = 'H:M:S'
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 
-# You suck if you domain can't do this, git gud, https for lyf
+# You suck if your domain can't do this, git gud, https for lyf
 SECURE_HSTS_PRELOAD = True
 SECURE_HSTS_SECONDS = 60 * 60 * 24 * 365 * 3
 
-SECURE_REFERRER_POLICY = 'no-referrer'
+SECURE_REFERRER_POLICY = 'same-origin'
 
 CSP_DEFAULT_SRC = [ "'none'" ]
 CSP_IMG_SRC = [ "'self'" ]
@@ -176,16 +179,27 @@ try:
 except FileNotFoundError as e:
 	raise Exception(f'Create sentry.json in {Path(__file__).parent} containing a dsn')
 
+
+def trace_sampler_filter(sampling_context):
+	if sampling_context['wsgi_environ']['PATH_INFO'] == '/favicon.ico':
+		return 0
+
+	return 1.0
+
+
+def strip_sensitive_data(event, hint):
+	# modify event here
+	return event
+
 sentry_sdk.init(
 	dsn=SENTRY_CONFIG['dsn'],
 	integrations=[DjangoIntegration()],
 
-	# Set traces_sample_rate to 1.0 to capture 100%
-	# of transactions for performance monitoring.
-	# We recommend adjusting this value in production.
-	traces_sample_rate=1.0,
+	traces_sampler=trace_sampler_filter,
 
 	# If you wish to associate users to errors (assuming you are using
 	# django.contrib.auth) you may enable sending PII data.
-	send_default_pii=True
+	send_default_pii=True,
+
+	with_locals=False,
 )

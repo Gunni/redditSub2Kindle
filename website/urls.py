@@ -4,17 +4,19 @@ from django.views.generic import RedirectView
 
 from . import views
 
-base = ''
-
 urlpatterns = [
-	path(f'{base}', views.index, name='index'),
-	path(f'{base}authors/', views.authors, name='authors'),
-	path(f'{base}author/<int:author_id>', views.author, name='author'),
-	path(f'{base}all/', views.all, name='all'),
-	path(f'{base}<int:story_id>/', views.detail, name='detail'),
-	path(f'{base}vote/<slug:vote_id>', views.vote, name='vote'),
-	path(f'{base}download_ebook/<slug:post_id>/', views.download_ebook, name='download_ebook'),
-	path(f'{base}direct/', views.direct, name='direct'),
-	path(f'{base}get_all/<int:story_id>/', views.get_all, name='get_all'),
+	path('', views.get_list_of_subscriptions, name='index'),
+	path('get_all_authors/', views.get_all_authors, name='get_all_authors'),
+	#path('author/<int:author_id>', views.author, name='author'),
+	path('all/', views.get_all_posts_of_all_subscriptions, name='all'),
+	path('<int:story_id>/', views.get_list_of_subscription_posts, name='detail'),
+	path('vote/<slug:vote_id>', views.vote, name='vote'),
+	path('download_ebook/<slug:post_id>/', views.download_ebook, name='download_ebook'),
+	path('textbook', views.textbook, name='textbook'),
+	path('bookify', views.bookify, name='bookify'),
+	path('get_n_chapter_as_ebook/<int:story_id>/', views.get_n_chapter_as_ebook, name='get_n_chapter_as_ebook'),
 	path('favicon.ico', RedirectView.as_view(url=staticfiles_storage.url('favicon.png'))),
+
+	path('nuke_cache/', views.nuke_cache, name='nuke_cache'),
+	path('nuke_cache/<int:story_id>/', views.nuke_cache, name='nuke_cache'),
 ]

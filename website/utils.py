@@ -1,35 +1,34 @@
 import datetime
-import io
 import logging
-import operator
 import os
 import pickle
 import re
-import string
-import time
-from collections import defaultdict
+
+import uuid
 from contextlib import contextmanager
 from subprocess import Popen, PIPE
 import tempfile
 import textwrap
 
 import praw
-from PIL import ImageFont
 
-from bs4 import BeautifulSoup
+import textile
+
 from dateutil.relativedelta import relativedelta
 from django.utils.termcolors import colorize
 from django.http import HttpResponse
-from prawcore import Forbidden
+from prawcore import Forbidden, ResponseException
+from fuzzywuzzy import fuzz
 
 from ebooklib import epub
 
-from .helpers import replaceTextnumberWithNumber
+from .helpers import replaceTextnumberWithNumber, sort_posts, generate_filename_for_post, standardize_title, DotDict
 from .models import Story
+
+from django.core.cache import cache
 
 logger = logging.getLogger(__name__)
 
-from django.core.cache import cache
 
 def get_or_set_cache(post, how_long=60 * 60 * 24 * 7):
 	c = cache.get(post.id)
@@ -45,16 +44,18 @@ def get_or_set_cache(post, how_long=60 * 60 * 24 * 7):
 
 	return post
 
+
 # Ensures that when I vote or hide a post, it will be re-downloaded with
 # updated flags whenever I reload the page
 def wipe_cache(post_id):
 	cache.delete(post_id)
 
+
 # The whole reason this class even exists is because of this issue
 # https://www.reddit.com/r/redditdev/comments/oheh52/submissionsnew_returns_pinned_posts_out_of_order/
 # We can not request posts in strict time order because pinned posts are always first
-# BUG: if an ANCIENT post is pinned (100+ posts ago), it will still appear in the first 100 post list
-#      idea is to hold back really old pinned posts until we get an unpinned one that's older
+# BUG: if an ANCIENT post is pinned (1000+ posts ago), it will still appear in the first 100 post list
+#      idea is to hold back ancient pinned posts until we get an unpinned one that's older
 class PostIterator:
 	def __init__(self, iterator):
 		self.iterator = iterator
@@ -77,7 +78,7 @@ class PostIterator:
 				self.can_get_more = not batch['done']
 
 				if batch['done'] and len(batch['posts']) > 0:
-					print('IT CAN HAPPEN!')
+					raise Exception('IT CAN HAPPEN!')
 
 				if len(batch['posts']) > 0:
 					return self.storage[self.element]
@@ -93,24 +94,31 @@ class PostIterator:
 
 		try:
 			while True:
-				post = get_or_set_cache(next(self.iterator), None)
+				try:
+					post = get_or_set_cache(next(self.iterator))
+				except ResponseException as e:
+					raise e
+
 				post.__hash__ = hash(post.id)
 
 				posts.append(post)
 
+				# noinspection PyProtectedMember
 				if self.iterator._listing is None or (self.iterator._list_index + 1) > len(self.iterator._listing):
 					break
 		except Forbidden as e:
 			print(f'Got HTTP Forbidden while getting {self.iterator.url}, either he/she or we have been banned, please check and or remove')
+			raise e
+		except ResponseException as e:
+			print(f'########### {e}')
 			raise e
 		except StopIteration:
 			done = True
 
 		return {'posts': sort_posts(posts), 'done': done}
 
-def get_story(iterator, subscription, how_many_liked_i_want):
-	print(f'get_story {colorize(subscription, fg="green")} liked? {how_many_liked_i_want}')
 
+def get_N_subscription_posts(iterator, subscription, how_many_liked_i_want):
 	results = set()
 	upvoted = 0
 
@@ -122,22 +130,34 @@ def get_story(iterator, subscription, how_many_liked_i_want):
 		if post.subreddit != subscription.subreddit:
 			continue
 
-		title = subscription.title_fragment
+		# Title search method
+		# non-fuzzy stuff first
+		if subscription.is_regex or not subscription.is_fuzzy:
+			title = subscription.title_fragment
+			if not subscription.is_regex:
+				title = re.escape(title)
 
-		if not subscription.is_regex:
-			title = re.escape(title)
+			r = re.search(title, post.title, re.IGNORECASE)
+			if r is None:
+				continue
+		else:
+			# fuzzy stuff
+			result = fuzz.partial_ratio(subscription.title_fragment, post.title)
 
-		r = re.search(title, post.title, re.IGNORECASE)
-		if r is None:
-			continue
+			if result < subscription.fuzzy_ratio:
+				continue
 
 		# if we got to this point, then this post is acceptable!
 		# if it is already in an upvoted state, count it, otherwise add it without counting it
 
-		post.fixed_title = fix_title(post)
+		post.fixed_title = standardize_title(post)
 		post.upvotable = can_upvote(post)
 
-		if post.likes == True or post.hidden:
+		# What constitutes a post that is read?
+		# Upvoted, or Hidden
+		post.is_read = post.likes is True or post.hidden
+
+		if post.is_read:
 			if upvoted < how_many_liked_i_want:
 				upvoted += 1
 				results.add(post)
@@ -147,6 +167,7 @@ def get_story(iterator, subscription, how_many_liked_i_want):
 			results.add(post)
 
 	return results
+
 
 def get_reddit_posts(author, story, how_many_likes_i_want=10):
 	reddit = praw.Reddit()
@@ -158,7 +179,7 @@ def get_reddit_posts(author, story, how_many_likes_i_want=10):
 
 	results = set()
 
-	# no subs means no results, bail early on this author
+	# no subs, means no results, bail early on this author
 	if len(subscriptions) == 0:
 		print(f'FYI: {author} has no enabled subscriptions')
 		return results
@@ -166,83 +187,85 @@ def get_reddit_posts(author, story, how_many_likes_i_want=10):
 	iterator = PostIterator(reddit.redditor(author.username).submissions.new(limit=None))
 
 	for subscription in subscriptions:
-		results.update(get_story(iterator, subscription, how_many_likes_i_want))
-		print(f'iterator storage size: {len(iterator.storage)}')
+		results.update(get_N_subscription_posts(iterator, subscription, how_many_likes_i_want))
 
 	return sort_posts(results)
 
-def sort_posts(posts):
-	return sorted(posts, reverse=True, key=operator.attrgetter('created_utc'))
 
-def fix_title(post):
-	dt = datetime.datetime.fromtimestamp(post.created_utc)
+def generate_ebook_from_plaintext(title, text):
+	t = DotDict({
+		'title': title,
+		'author': DotDict({'name': '# N/A #'}),
+		'created_utc': datetime.datetime.utcnow().timestamp(),
+	})
 
-	# Nuke unicode
-	printable = set(string.printable)
-	common_name = ''.join(filter(lambda x: x in printable, post.title))
+	book = create_empty_book(standardize_title(t), 'N/A')
 
-	common_name = replaceTextnumberWithNumber(common_name).strip('.')
-	common_name = re.sub(r'(.*)Tales From the Terran Republic(.*)', rf'TFtTR {dt:%Y-%m-%dT%H%M} - \1 \2', common_name, flags=re.IGNORECASE)
-	common_name = re.sub(r'\[OP\]', ' ', common_name)
-	common_name = re.sub(r'[\[\]]', ' ', common_name)
-	common_name = re.sub(r' +', ' ', common_name)
-	common_name = re.sub(r'Story Continuation', '', common_name)
-	common_name = re.sub(r'^ Serial ', '', common_name)
+	# create chapter
+	chapter = epub.EpubHtml(title=title, file_name=f'{generate_filename_for_post(t)}.html', lang='en')
+	chapter.content = textile.textile(text)
+	chapter.add_link(href='styles.css', rel='stylesheet', type='text/css')
 
-	if post.author.name == 'Ralts_Bloodthorne' and 'Chapter' in common_name[:7]:
-		common_name = f'First Contact - {common_name}'
+	book.add_item(chapter)
 
-	return common_name
+	# We have to define a Table Of Contents
+	book.toc = (chapter, )
+	# add chapter listing thingy (allows readers that support it to list chapters)
+	book.add_item(epub.EpubNcx())
 
-# fix for https://bugs.python.org/issue14243
-@contextmanager
-def my_named_temporary_file(prefix, suffix):
-	f = tempfile.NamedTemporaryFile(prefix=prefix, suffix=suffix, delete=False)
-	try:
-		yield f
-	finally:
-		try:
-			os.unlink(f.name)
-		except OSError:
-			pass
+	# basic spine
+	book.spine = [ chapter ]
 
-def download_ebook_with_comments(post_id, index=None):
-	reddit = praw.Reddit()
-	post = reddit.submission(post_id)
+	return convert_book_to_epub_azw3_response(
+		book,
+		generate_filename_for_post(t)
+	)
 
-	dt = datetime.datetime.fromtimestamp(post.created_utc)
 
-	common_name = fix_title(post)
+def get_posts_as_ebook(posts, title, author):
+	toc = []
+	book = create_empty_book(title, author)
 
-	filename = re.sub(r':', ' ', common_name)
-	filename = re.sub(r'/', ' ', filename)
-	filename = re.sub(r'’', ' ', filename)
+	filename = generate_filename_for_post(DotDict({
+		'title': title,
+		'author': DotDict({'name': author}),
+		'created_utc': datetime.datetime.utcnow().timestamp(),
+	}))
 
-	filename = f'{filename[:96]}.azw3'
+	for p in posts:
+		post = get_or_set_cache(p)
+		print(f'Adding "{standardize_title(post)}" to book')
 
-	post.comment_sort = 'best'
-	post.comment_limit = 10
-	post.comments.replace_more(limit=0)
+		chapter, comments = post_to_chapter_and_comments(post)
 
+		book.add_item(chapter)
+		book.add_item(comments)
+
+		toc.extend([ chapter, comments ])
+
+	# We have to define a Table Of Contents
+	book.toc = tuple(toc)
+	# add chapter listing thingy (allows readers that support it to list chapters)
+	book.add_item(epub.EpubNcx())
+
+	# basic spine
+	book.spine = toc
+
+	return convert_book_to_epub_azw3_response(book, filename)
+
+
+
+def create_empty_book(title, author):
 	book = epub.EpubBook()
-	book.set_title(common_name)
-	book.add_author(str(post.author))
+	book.set_template('cover', 'test')
+
+	book.set_title(title)
+	book.add_author(str(author))
 	book.set_language('en')
 
-	html = f'<div id="title">\n'
-	html += f'<h1><a href="{post.url}">{common_name}</a></h1>\n'
-	html += f'<h2>by {post.author}</h2>\n'
-	html += f'<h3>at {dt:%Y-%m-%d %H:%M:%S}</h3>\n'
-	html += f'</div>\n'
-
-	html += f'<hr />\n'
-
-	if post.selftext_html is not None:
-		html += post.selftext_html
-	else:
-		html += '<p>## Post has no selftext_html ##</p>'
-
-	html = re.sub(r'www.reddit.com', 'i.reddit.com', html)
+	# TODO Generate cover?
+	#with open('test.svg', 'rb') as f:
+	#	book.set_cover('cover.svg', f.read())
 
 	style = 'body {\n' \
 			'   text-align: justify;\n' \
@@ -293,36 +316,72 @@ def download_ebook_with_comments(post_id, index=None):
 		content=style
 	)
 
+	book.add_item(css)
+
+	return book
+
+
+def post_to_chapter_and_comments(post):
+	dt = datetime.datetime.fromtimestamp(post.created_utc)
+
+	html = f'<div id="title">\n'
+	html += f'<h1><a href="{post.url}">{standardize_title(post)}</a></h1>\n'
+	html += f'<h2>by {post.author}</h2>\n'
+	html += f'<h3>at {dt:%Y-%m-%d %H:%M:%S}</h3>\n'
+	html += f'</div>\n'
+
+	html += f'<hr />\n'
+
+	if post.selftext_html is None:
+		html += '<p>## Post has no selftext_html ##</p>'
+	else:
+		html += post.selftext_html
+
+	# replace www.reddit.com with i.reddit.com so that kindle can load it without dying
+	html = re.sub(r'www.reddit.com', 'i.reddit.com', html)
+
+	# We use UUID because no two files can have the same filename or the ebook breaks
+	filename = uuid.uuid4()
+
 	# create chapter
-	chapter = epub.EpubHtml(title='Post Body', file_name='a.html', lang='en')
+	chapter = epub.EpubHtml(title=post.title, file_name=f'{filename}.html', lang='en')
 	chapter.content = html
 	chapter.add_link(href='styles.css', rel='stylesheet', type='text/css')
 
-	comments = epub.EpubHtml(title='Comments', file_name='b.html', lang='en')
-	comments.content = getCommentForestHTML(post, post.comments)
+	# Configure how we get post comments
+	post.comment_sort = 'best'
+	post.comment_limit = 10
+	post.comments.replace_more(limit=0)
+
+	comments = epub.EpubHtml(title=post.title + ' Comments', file_name=f'{filename}.comments.html', lang='en')
+	comments.content = get_comment_forest_as_html(post, post.comments)
 	comments.add_link(href='styles.css', rel='stylesheet', type='text/css')
 
-	# add chapter
-	book.add_item(css)
-	book.add_item(chapter)
-	book.add_item(comments)
+	return chapter, comments
 
-	# define Table Of Contents
-	book.toc = (chapter, comments)
-	# add chapter listing thingy (allows readers that support it to list chapters)
-	book.add_item(epub.EpubNcx())
 
-	# basic spine
-	book.spine = [ chapter, comments ]
+# fix for https://bugs.python.org/issue14243
+@contextmanager
+def my_named_temporary_file(prefix, suffix):
+	f = tempfile.NamedTemporaryFile(prefix=prefix, suffix=suffix, delete=False)
+	try:
+		yield f
+	finally:
+		try:
+			os.unlink(f.name)
+		except OSError:
+			pass
 
-	response = None
 
-	# write to the file
+# This function takes in a `book` object and converts it to epub, which is written to a temp file
+# then that temp file is closed, and we use ebook-convert to convert it to azw3 so kindles can read it
+# That file then gets returned as file download
+def convert_book_to_epub_azw3_response(book, filename):
 	with my_named_temporary_file(prefix='redditSub2KindleTMP-', suffix='.epub') as f1:
 		epub.write_epub(f1, book, {})
 
 		# Close the file so that ebook-convert can mess with it
-		f1.close() # https://bugs.python.org/issue14243
+		f1.close()  # https://bugs.python.org/issue14243
 
 		process = Popen([ r'C:\\Program Files\\Calibre2\\ebook-convert.exe', f1.name, f'{f1.name}.azw3' ], stdout=PIPE, stderr=PIPE)
 		stdout, stderr = process.communicate()
@@ -343,10 +402,12 @@ def download_ebook_with_comments(post_id, index=None):
 
 	return response
 
-def getCommentForestHTML(post, forest, level=0) -> str:
+
+def get_comment_forest_as_html(post, forest, level=0) -> str:
 	ret = ''
 
 	for comment in forest:
+		# noinspection PyUnresolvedReferences
 		if isinstance(comment, praw.models.MoreComments):
 			raise AssertionError('MoreComments happened, despite replace_more?')
 
@@ -363,12 +424,12 @@ def getCommentForestHTML(post, forest, level=0) -> str:
 			continue
 
 		dt = datetime.datetime.fromtimestamp(comment.created_utc)
-		authorflag = '<strong>(OP)</strong> ' if post.author == comment.author else ''
+		author_flag = '<strong>(OP)</strong> ' if post.author == comment.author else ''
 
 		indent = '\t' * level
 
 		ret += f'{indent}<hr /><blockquote>\n'
-		ret += f'{indent}\t<h3>{authorflag}<strong>/u/{comment.author}</strong></h3>'
+		ret += f'{indent}\t<h3>{author_flag}<strong>/u/{comment.author}</strong></h3>'
 		ret += f'{indent}\t<h4>at {dt} (d:{level + 1})</h4>\n'
 		body = comment.body_html
 
@@ -378,7 +439,7 @@ def getCommentForestHTML(post, forest, level=0) -> str:
 		indented_body = textwrap.indent(body, f'{indent}\t')
 		ret += f'{indented_body}\n\n'
 
-		ret += textwrap.indent(getCommentForestHTML(post, comment.replies, level+1), indent)
+		ret += textwrap.indent(get_comment_forest_as_html(post, comment.replies, level + 1), indent)
 
 		ret += f'{indent}</blockquote>\n'
 
@@ -386,8 +447,17 @@ def getCommentForestHTML(post, forest, level=0) -> str:
 
 
 # I use upvote to "mark as read" but reddit annoyingly prevents upvoting after
-# 6 months, so this returns false for those, since i can then hide them instead
+# 6 months, so this returns false for those, since I can then hide them instead
 def can_upvote(post):
+	# Reddit introduced commenting/upvoting archived posts on 2021-10-01 which makes this check redundant for communities
+	# that allow it... But there exists no mechanism to check if a community has it enabled except manual testing...
+	# https://www.reddit.com/r/blog/comments/pze6d2/commenting_on_archived_posts_images_in_chat_and/
+
+	# r/HFY has disabled post archiving 2021-10-17
+	# https://www.reddit.com/r/HFY/comments/pztdfk/meta_mods_enable_comments_and_votes_on_old_posts/
+	if post.subreddit == 'HFY':
+		return True
+
 	posted_at = datetime.datetime.fromtimestamp(int(post.created_utc)).replace(hour=0, minute=0, second=0)
 	max_age = datetime.datetime.today() + relativedelta(months=-6)
 

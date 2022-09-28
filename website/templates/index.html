@@ -37,17 +37,26 @@
 <hr />
 
 <div>
-	<h2>Download post directly</h2>
+	<h2>Download multiple posts into a single file</h2>
 
-	<form method="post" action="{% url 'direct' %}">
-		<div class="input-group mb-3">
-			<input name="url" type="url" class="form-control" placeholder="URL">
+	<form id="bookify" action="{% url 'bookify' %}" method="post">
+		<textarea rows="3" class="form-control book" name="list"></textarea>
+		<button name="submit" type="submit">Turn into a book (you can put multiple links)</button>
+	</form>
 
-			<div class="input-group-append">
-				<button name="download" class="btn btn-outline-secondary" type="submit">azw3</button>
-			</div>
-		</div>
+	<h2>Download text as ebook</h2>
+
+	<form id="textbook" action="/textbook" method="post">
+		<input name="title" type="text" class="form-control" placeholder="Title">
+		<textarea rows="3" class="form-control book" name="content"></textarea>
+		<button name="submit" type="submit">Turn into book</button>
 	</form>
 </div>
+
+<hr />
+
+<form id="nuke_cache" action="/nuke_cache/" method="post">
+	<button name="submit" type="submit">Nuke cache for ALL stories</button>
+</form>
 
 {% endblock %}
